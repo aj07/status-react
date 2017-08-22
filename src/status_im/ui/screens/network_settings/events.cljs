@@ -4,7 +4,8 @@
             [status-im.utils.handlers :as u]
             [status-im.data-store.networks :as networks]
             [status-im.utils.js-resources :as js-res]
-            [status-im.utils.types :as t]))
+            [status-im.utils.types :as t]
+            [status-im.ui.screens.navigation :as navigation]))
 
 ;;;; FX
 
@@ -50,3 +51,7 @@
   (fn [_ [_ network]]
     {:dispatch-n [[:account-update {:network network}]
                   [:navigate-to-clean :accounts]]}))
+
+(defmethod navigation/preload-data! :network-details
+  [db [_ _ network]]
+  (assoc db :networks/selected-network network))

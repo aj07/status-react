@@ -107,6 +107,7 @@
                   :accounts/recover
                   :accounts/login
                   :my-profile/edit
+                  :networks/selected-network
                   :networks/networks]
                  :opt-un
                  [::current-public-key

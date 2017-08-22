@@ -22,16 +22,12 @@
     :value #(rf/dispatch [:network-remove])}])
 
 (views/defview network-details []
-  [{:keys [id name config]} [:get :selected-network]
+  [{:keys [id name config]} [:get :networks/selected-network]
    {:keys [network]} [:get-current-account]]
   (let [connected? (= id network)]
     [react/view {:flex 1}
      [status-bar/status-bar]
      [new-toolbar/toolbar]
-     [network-settings/network-settings
-      {:name       name
-       :connected? connected?
-       :options    options}]
      (when-not connected?
        [react/touchable-highlight {:on-press #(rf/dispatch [:connect-network id])}
         [react/view st/connect-button-container

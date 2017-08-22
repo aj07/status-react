@@ -43,9 +43,7 @@
       (react/list-item
         ^{:key row}
         [react/touchable-highlight
-         {:on-press #(do
-                       (rf/dispatch [:set :selected-network row])
-                       (rf/dispatch [:navigate-to :network-details]))}
+         {:on-press #(rf/dispatch [:navigate-to :network-details row])}
          [react/view st/network-item
           [network-icon connected? 40]
           [react/view {:padding-horizontal 16}
