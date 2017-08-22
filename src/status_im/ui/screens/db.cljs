@@ -11,7 +11,8 @@
             status-im.chat.new-public-chat.db
             status-im.ui.screens.profile.db
             status-im.transactions.specs
-            status-im.ui.screens.discover.db))
+            status-im.ui.screens.discover.db
+            status-im.ui.screens.network-settings.db))
 
 ;; initial state of app-db
 (def app-db {:current-public-key         ""
@@ -105,7 +106,8 @@
                   :accounts/current-account-id
                   :accounts/recover
                   :accounts/login
-                  :my-profile/edit]
+                  :my-profile/edit
+                  :networks/networks]
                  :opt-un
                  [::current-public-key
                   ::modal

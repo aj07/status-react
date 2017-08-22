@@ -13,6 +13,7 @@
             status-im.ui.screens.group.chat-settings.events
             status-im.ui.screens.group.events
             status-im.ui.screens.navigation
+            status-im.ui.screens.network-settings.events
             status-im.ui.screens.profile.events
             status-im.ui.screens.qr-scanner.events
             status-im.ui.screens.wallet.events
@@ -119,6 +120,7 @@
   (fn [_ _]
     {::testfairy-alert nil
      :dispatch-n       [[:initialize-db]
+                        [:load-default-networks!]
                         [:load-accounts]
                         [:check-console-chat]
                         [:listen-to-network-status!]
