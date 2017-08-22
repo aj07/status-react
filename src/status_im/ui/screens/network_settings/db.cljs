@@ -9,4 +9,4 @@
 (spec/def :networks/network
   (spec/keys :req-un [:networks/id :networks/name :networks/config]))
 
-(spec/def :networks/networks (spec/map-of :networks/id :networks/network))
+(spec/def :networks/networks (spec/nilable (spec/map-of :networks/id :networks/network)))

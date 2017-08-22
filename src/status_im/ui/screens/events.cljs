@@ -47,33 +47,33 @@
   ::initialize-crypt-fx
   (fn []
     (crypt/gen-random-bytes
-     1024
-     (fn [{:keys [error buffer]}]
-       (if error
-         (log/error "Failed to generate random bytes to initialize sjcl crypto")
-         (->> (.toString buffer "hex")
-              (.toBits (.. dependencies/eccjs -sjcl -codec -hex))
-              (.addEntropy (.. dependencies/eccjs -sjcl -random))))))))
+      1024
+      (fn [{:keys [error buffer]}]
+        (if error
+          (log/error "Failed to generate random bytes to initialize sjcl crypto")
+          (->> (.toString buffer "hex")
+               (.toBits (.. dependencies/eccjs -sjcl -codec -hex))
+               (.addEntropy (.. dependencies/eccjs -sjcl -random))))))))
 
 (defn node-started [result]
   (log/debug "Started Node"))
 
 (defn move-to-internal-storage []
   (status/move-to-internal-storage
-   (fn []
-     (status/start-node node-started))))
+    (fn []
+      (status/start-node node-started))))
 
 (reg-fx
   ::initialize-geth-fx
   (fn []
     (status/should-move-to-internal-storage?
-     (fn [should-move?]
-       (if should-move?
-         (dispatch [:request-permissions
-                    [:read-external-storage]
-                    #(move-to-internal-storage)
-                    #(dispatch [:move-to-internal-failure-message])])
-         (status/start-node node-started))))))
+      (fn [should-move?]
+        (if should-move?
+          (dispatch [:request-permissions
+                     [:read-external-storage]
+                     #(move-to-internal-storage)
+                     #(dispatch [:move-to-internal-failure-message])])
+          (status/start-node node-started))))))
 
 (reg-fx
   ::status-module-initialized-fx
@@ -100,8 +100,8 @@
   (fn []
     (when config/testfairy-enabled?
       (utils/show-popup
-       (i18n/label :testfairy-title)
-       (i18n/label :testfairy-message)))))
+        (i18n/label :testfairy-title)
+        (i18n/label :testfairy-message)))))
 
 ;;;; Handlers
 
@@ -118,6 +118,7 @@
 (register-handler-fx
   :initialize-app
   (fn [_ _]
+    (print :THE)
     {::testfairy-alert nil
      :dispatch-n       [[:initialize-db]
                         [:load-default-networks!]
@@ -129,16 +130,18 @@
 
 (register-handler-fx
   :initialize-db
-  (fn [{{:keys [status-module-initialized? status-node-started?
-                network-status network _]} :db} _]
+  (fn [{{:keys          [status-module-initialized? status-node-started?
+                         network-status network _]
+         :networks/keys [networks]} :db} _]
     {::init-store nil
-     :db (assoc app-db
-                :accounts/current-account-id nil
-                :contacts/contacts {}
-                :network-status network-status
-                :status-module-initialized? (or platform/ios? js/goog.DEBUG status-module-initialized?)
-                :status-node-started? status-node-started?
-                :network (or network "testnet"))}))
+     :db          (assoc app-db
+                    :accounts/current-account-id nil
+                    :contacts/contacts {}
+                    :network-status network-status
+                    :status-module-initialized? (or platform/ios? js/goog.DEBUG status-module-initialized?)
+                    :status-node-started? status-node-started?
+                    :network (or network "testnet")
+                    :networks/networks networks)}))
 
 (register-handler-db
   :initialize-account-db
@@ -175,14 +178,14 @@
                  :chat
                  :accounts)]
       (merge
-       {:db (assoc db :view-id view
-                   :navigation-stack (list view))}
-       (when (or (empty? accounts) open-console?)
-         {:dispatch-n (concat
-                       [[:init-console-chat]
-                        [:load-commands!]]
-                       (when open-console?
-                         [[:navigate-to :chat console-chat-id]]))})))))
+        {:db (assoc db :view-id view
+                       :navigation-stack (list view))}
+        (when (or (empty? accounts) open-console?)
+          {:dispatch-n (concat
+                         [[:init-console-chat]
+                          [:load-commands!]]
+                         (when open-console?
+                           [[:navigate-to :chat console-chat-id]]))})))))
 
 (register-handler-fx
   :initialize-crypt
@@ -206,21 +209,21 @@
     (inst/log (str "Signal event: " event-str))
     (let [{:keys [type event]} (types/json->clj event-str)]
       (case type
-        "transaction.queued"      (dispatch [:transaction-queued event])
-        "transaction.failed"      (dispatch [:transaction-failed event])
-        "node.started"            (dispatch [:status-node-started])
-        "module.initialized"      (dispatch [:status-module-initialized])
-        "local_storage.set"       (dispatch [:set-local-storage event])
+        "transaction.queued" (dispatch [:transaction-queued event])
+        "transaction.failed" (dispatch [:transaction-failed event])
+        "node.started" (dispatch [:status-node-started])
+        "module.initialized" (dispatch [:status-module-initialized])
+        "local_storage.set" (dispatch [:set-local-storage event])
         "request_geo_permissions" (dispatch [:request-permissions [:geolocation]
                                              #(dispatch [:webview-geo-permissions-granted])])
-        "jail.send_message"       (dispatch [:send-message-from-jail event])
-        "jail.show_suggestions"   (dispatch [:show-suggestions-from-jail event])
+        "jail.send_message" (dispatch [:send-message-from-jail event])
+        "jail.show_suggestions" (dispatch [:show-suggestions-from-jail event])
         (log/debug "Event " type " not handled")))))
 
 (register-handler-fx
   :status-module-initialized
   (fn [{:keys [db]} _]
-    {:db (assoc db :status-module-initialized? true)
+    {:db                            (assoc db :status-module-initialized? true)
      ::status-module-initialized-fx nil}))
 
 (register-handler-db
@@ -248,19 +251,19 @@
                 (fn []
                   (let [watch-id (atom nil)]
                     (.getCurrentPosition
-                     navigator.geolocation
-                     #(dispatch [:update-geolocation (js->clj % :keywordize-keys true)])
-                     #(dispatch [:update-geolocation (js->clj % :keywordize-keys true)])
-                     (clj->js {:enableHighAccuracy true :timeout 20000 :maximumAge 1000}))
+                      navigator.geolocation
+                      #(dispatch [:update-geolocation (js->clj % :keywordize-keys true)])
+                      #(dispatch [:update-geolocation (js->clj % :keywordize-keys true)])
+                      (clj->js {:enableHighAccuracy true :timeout 20000 :maximumAge 1000}))
                     (when platform/android?
                       (reset! watch-id
                               (.watchPosition
-                               navigator.geolocation
-                               #(do
-                                  (.clearWatch
-                                   navigator.geolocation
-                                   @watch-id)
-                                  (dispatch [:update-geolocation (js->clj % :keywordize-keys true)])))))))]}))
+                                navigator.geolocation
+                                #(do
+                                   (.clearWatch
+                                     navigator.geolocation
+                                     @watch-id)
+                                   (dispatch [:update-geolocation (js->clj % :keywordize-keys true)])))))))]}))
 
 (register-handler-db
   :update-geolocation

@@ -10,7 +10,7 @@
     [status-im.i18n :as i18n]
     [clojure.string :as str]))
 
-(fn add-rpc-url []
+(defn add-rpc-url []
   (let [rpc-url "text"]
     [react/view {:flex 1}
      [status-bar/status-bar]

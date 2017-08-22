@@ -17,7 +17,7 @@
 
 (handlers/register-handler-fx
   :add-networks
-  (fn [{{:networks/keys [networks]} :db} [_ new-networks]]
+  (fn [{{:networks/keys [networks] :as db} :db} [_ new-networks]]
     (let [identities    (set (keys networks))
           new-networks' (->> new-networks
                              (remove #(identities (:id %)))
