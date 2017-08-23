@@ -1,7 +1,7 @@
 (ns status-im.data-store.realm.schemas.base.core
   (:require [status-im.data-store.realm.schemas.base.v1.core :as v1]
             [status-im.data-store.realm.schemas.base.v2.core :as v2]
-            [status-im.data-store.realm.schemas.base.v2.core :as v3]))
+            [status-im.data-store.realm.schemas.base.v3.core :as v3]))
 
 ; put schemas ordered by version
 (def schemas [{:schema v1/schema
@@ -10,6 +10,6 @@
               {:schema v2/schema
                :schemaVersion 2
                :migration v2/migration}
-              {:schema v2/schema
+              {:schema v3/schema
                :schemaVersion 3
-               :migration v2/migration}])
+               :migration v3/migration}])
