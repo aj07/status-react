@@ -64,10 +64,10 @@
   (let [ct       (if (= content-type c/content-type-command)
                    c/content-type-wallet-command
                    c/content-type-wallet-request)
-        message' (assoc message :clock-value 0
-                                :message-id (random/id)
-                                :chat-id wallet-chat-id
-                                :content-type ct)]
+        message' (dissoc (assoc message :clock-value 0
+                                        :message-id (random/id)
+                                        :chat-id wallet-chat-id
+                                        :content-type ct) :group-id)]
     (add-message db message')))
 
 (register-handler :received-protocol-message!
