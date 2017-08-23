@@ -55,25 +55,21 @@
                (.toBits (.. dependencies/eccjs -sjcl -codec -hex))
                (.addEntropy (.. dependencies/eccjs -sjcl -random))))))))
 
-(defn node-started [result]
-  (log/debug "Started Node"))
-
-(defn move-to-internal-storage []
+(defn move-to-internal-storage [config]
   (status/move-to-internal-storage
-    (fn []
-      (status/start-node node-started))))
+    #(status/start-node config)))
 
 (reg-fx
-  ::initialize-geth-fx
-  (fn []
+  :initialize-geth-fx
+  (fn [config]
     (status/should-move-to-internal-storage?
       (fn [should-move?]
         (if should-move?
           (dispatch [:request-permissions
                      [:read-external-storage]
-                     #(move-to-internal-storage)
+                     #(move-to-internal-storage config)
                      #(dispatch [:move-to-internal-failure-message])])
-          (status/start-node node-started))))))
+          (status/start-node config))))))
 
 (reg-fx
   ::status-module-initialized-fx
@@ -118,10 +114,8 @@
 (register-handler-fx
   :initialize-app
   (fn [_ _]
-    (print :THE)
     {::testfairy-alert nil
      :dispatch-n       [[:initialize-db]
-                        [:load-default-networks!]
                         [:load-accounts]
                         [:check-console-chat]
                         [:listen-to-network-status!]
@@ -140,8 +134,7 @@
                     :network-status network-status
                     :status-module-initialized? (or platform/ios? js/goog.DEBUG status-module-initialized?)
                     :status-node-started? status-node-started?
-                    :network (or network "testnet")
-                    :networks/networks networks)}))
+                    :network (or network "testnet"))}))
 
 (register-handler-db
   :initialize-account-db
@@ -194,8 +187,14 @@
 
 (register-handler-fx
   :initialize-geth
-  (fn [_ _]
-    {::initialize-geth-fx nil}))
+  (fn [{db :db} _]
+    (let [{:accounts/keys [current-account-id accounts]} db
+          default-networks (get db :networks/networks)
+          default-network  (get db :network)
+          {:keys [network networks]} (get accounts current-account-id)
+          network-config   (or (get-in networks [network :config])
+                               (get-in default-networks [default-network :config]))]
+      {:initialize-geth-fx network-config})))
 
 (register-handler-fx
   :webview-geo-permissions-granted
@@ -212,6 +211,7 @@
         "transaction.queued" (dispatch [:transaction-queued event])
         "transaction.failed" (dispatch [:transaction-failed event])
         "node.started" (dispatch [:status-node-started])
+        "node.stopped" (dispatch [:status-node-stopped])
         "module.initialized" (dispatch [:status-module-initialized])
         "local_storage.set" (dispatch [:set-local-storage event])
         "request_geo_permissions" (dispatch [:request-permissions [:geolocation]
@@ -226,10 +226,16 @@
     {:db                            (assoc db :status-module-initialized? true)
      ::status-module-initialized-fx nil}))
 
-(register-handler-db
+(register-handler-fx
   :status-node-started
-  (fn [db]
-    (assoc db :status-node-started? true)))
+  (fn [{{:node/keys [after-start] :as db} :db}]
+    (merge {:db (assoc db :status-node-started? true)}
+           (when after-start {:dispatch-n [after-start]}))))
+
+(register-handler-fx
+  :status-node-stopped
+  (fn [{{:node/keys [after-stop]} :db}]
+    (when after-stop {:dispatch-n [after-stop]})))
 
 (register-handler-fx
   :app-state-change

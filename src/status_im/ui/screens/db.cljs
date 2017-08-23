@@ -1,6 +1,6 @@
 (ns status-im.ui.screens.db
   (:require-macros [status-im.utils.db :refer [allowed-keys]])
-  (:require [status-im.constants :refer [console-chat-id]]
+  (:require [status-im.constants :as constants]
             [status-im.utils.platform :as platform]
             [cljs.spec.alpha :as spec]
             status-im.ui.screens.accounts.db
@@ -25,7 +25,7 @@
              :group/contact-groups       {}
              :group/selected-contacts    #{}
              :chats                      {}
-             :current-chat-id            console-chat-id
+             :current-chat-id            constants/console-chat-id
              :loading-allowed            true
              :selected-participants      #{}
              :my-profile/edit            {:edit?      false
@@ -39,7 +39,8 @@
              :sync-state                 :done
              :wallet                     {}
              :prices                     {}
-             :network                    "testnet"})
+             :network                    "testnet"
+             :networks/networks          constants/default-networks})
 
 ;;;;GLOBAL
 
@@ -84,6 +85,11 @@
 
 (spec/def ::network (spec/nilable string?))
 
+;;;;NODE
+
+(spec/def :node/after-start (spec/nilable vector?))
+(spec/def :node/after-stop (spec/nilable vector?))
+
 (spec/def ::db (allowed-keys
                  :opt
                  [:contacts/contacts
@@ -108,7 +114,9 @@
                   :accounts/login
                   :my-profile/edit
                   :networks/selected-network
-                  :networks/networks]
+                  :networks/networks
+                  :node/after-start
+                  :node/after-stop]
                  :opt-un
                  [::current-public-key
                   ::modal

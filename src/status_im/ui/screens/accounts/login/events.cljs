@@ -12,6 +12,9 @@
 
 ;;;; FX
 
+(reg-fx ::stop-node (fn [] (status/stop-node)))
+
+
 (reg-fx
   ::login
   (fn [[address password]]
@@ -40,27 +43,47 @@
                        :name name)
      :dispatch [:navigate-to :login]}))
 
+
+(register-handler-fx
+  ::login-account
+  (fn [{db :db} [_ address password]]
+    {:db     (assoc db :node/after-start nil)
+     ::login [address password]}))
+
+
+(register-handler-fx
+  ::start-node
+  (fn [{db :db} [_ address password]]
+    (let [accounts (get db :accounts/accounts)
+          {:keys [network networks]} (get accounts address)
+          config   (get-in networks [network :config])]
+      {:db                 (assoc db :node/after-start [::login-account address password]
+                                     :node/after-stop nil)
+       :initialize-geth-fx config})))
+
+
 (register-handler-fx
   :login-account
   (fn [{db :db} [_ address password account-creation?]]
-    {:db     (-> db
-                 (assoc :accounts/account-creation? account-creation?)
-                 (assoc-in [:accounts/login :processing] true))
-     ::login [address password]}))
+    {:db         (-> db
+                     (assoc :accounts/account-creation? account-creation?)
+                     (assoc-in [:accounts/login :processing] true)
+                     (assoc :node/after-stop [::start-node address password]))
+     ::stop-node nil}))
 
 (register-handler-fx
   :login-handler
   (fn [{db :db} [_ result address]]
-    (let [data (json->clj result)
-          error (:error data)
+    (let [data    (json->clj result)
+          error   (:error data)
           success (zero? (count error))
-          db' (assoc-in db [:accounts/login :processing] false)]
-      (log/debug "Logged in account: ")
+          db'     (assoc-in db [:accounts/login :processing] false)]
+      (log/debug "Logged in account: " result)
       (merge
         {:db (if success db' (assoc-in db' [:accounts/login :error] error))}
         (when success
           (let [is-login-screen? (= (:view-id db) :login)
-                new-account? (not is-login-screen?)]
+                new-account?     (not is-login-screen?)]
             (log/debug "Logged in: " (:view-id db) is-login-screen? new-account?)
             {::clear-web-data nil
              ::change-account [address new-account?]}))))))

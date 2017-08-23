@@ -26,3 +26,14 @@
 
 (def console-chat-id "console")
 (def wallet-chat-id "wallet")
+
+(def default-networks
+  {"mainnet" {:id "mainnet",
+              :name "Mainnet",
+              :config "{\"NetworkId\":1,\"DataDir\":\"/ethereum/mainnet\"}"},
+   "testnet" {:id "testnet",
+              :name "Ropsten",
+              :config "{\"NetworkId\":3,\"DataDir\":\"/ethereum/testnet\"}"},
+   "rinkeby" {:id "rinkeby",
+              :name "Rinkeby",
+              :config "{\"NetworkId\":4,\"DataDir\":\"/ethereum/rinkeby\"}"}})
