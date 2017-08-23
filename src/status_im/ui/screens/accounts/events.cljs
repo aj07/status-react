@@ -142,11 +142,9 @@
 
 (register-handler-fx
   :account-update
-  (fn [{{:keys          [network]
-         :accounts/keys [accounts current-account-id] :as db} :db} [_ new-account-fields]]
+  (fn [{{:accounts/keys [accounts current-account-id] :as db} :db} [_ new-account-fields]]
     (let [current-account     (get accounts current-account-id)
-          new-account-fields' (assoc new-account-fields :network (or (:network current-account) network))
-          new-account         (update-account current-account new-account-fields')]
+          new-account         (update-account current-account new-account-fields)]
       {:db                        (assoc-in db [:accounts/accounts current-account-id] new-account)
        ::save-account             new-account
        ::broadcast-account-update (merge
