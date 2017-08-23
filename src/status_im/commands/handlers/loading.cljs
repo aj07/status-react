@@ -96,72 +96,80 @@
              (get-hash-by-file file))]
     (assoc db :command-hash-valid? valid?)))
 
-(defn each-merge [coll with]
+(defn each-merge [with coll]
   (->> coll
        (map (fn [[k v]] [k (merge v with)]))
        (into {})))
 
-(defn filter-commands [account {:keys [contacts chat-id] :as chat} commands]
+(defn extract-commands [{:keys [contacts]} commands]
   (->> commands
-       (remove (fn [[_ {:keys [scope name :as c]}]]
-                 (and (not (:address account))
-                      (not= name "global")
-                      (:registered-only? scope))))
-       ;; TODO(alwx): SCOOOOPE
-       (remove (fn [[_ {:keys [scope]}]]
-                 ))
-       (remove (fn [[k _]]
+       (remove (fn [[_ {:keys [name]}]]
                  (and (= (count contacts) 1)
                       (not= console-chat-id (get (first contacts) :identity))
-                      (h/matches (name k) "password"))))
+                      (h/matches name "password"))))
+       (map (fn [[k {:keys [name scope] :as v}]]
+              [[name scope] v]))
        (into {})))
 
-(defn get-mailmans-commands [db]
-  (->> (get-in db [:contacts/contacts bots-constants/mailman-bot :commands])
-       (map
-         (fn [[k v :as com]]
-           [k (-> v
-                  (update :params (fn [p]
-                                    (if (map? p)
-                                      ((comp vec vals) p)
-                                      p)))
-                  (assoc :bot bots-constants/mailman-bot
-                         :type :command))]))
+(defn extract-global-commands [commands]
+  (->> commands
+       (filter (fn [[_ {:keys [scope]}]]
+                 (:global? scope)))
+       (map (fn [[k {:keys [name scope] :as v}]]
+              [[name scope] (assoc v :bot id :type :command)]))
        (into {})))
+
+(defn get-mailman-commands [db]
+  (->> (get-in db [:contacts/contacts bots-constants/mailman-bot :commands])
+       (map (fn [[_ {:keys [name scope] :as v}]]
+              [[name scope]
+               (-> v
+                   (update :params (fn [p]
+                                     (if (map? p)
+                                       ((comp vec vals) p)
+                                       p)))
+                   (assoc :bot bots-constants/mailman-bot
+                          :type :command))]))
+       (into {})))
+
+(defn transform-commands [commands]
+  (reduce (fn [m [_ {:keys [name scope] :as v}]]
+            (update m (keyword name) conj v))
+          {}
+          commands))
 
 (defn add-commands
-  [{:keys [chats] :as db} [id _ {:keys [commands responses subscriptions]}]]
-  (let [account          @(subscribe [:get-current-account])
+  [{:keys [current-account-id accounts chats] :as db}
+   [id _ {:keys [commands responses subscriptions]}]]
+  (let [account          (get accounts current-account-id)
         chat             (get chats id)
-        commands'        (filter-commands account chat commands)
-        responses'       (filter-commands account chat responses)
-        global-commands  (->> commands'
-                              (filter (fn [[_ {:keys [scope]}]]
-                                        (:global? scope)))
-                              (map (fn [[k v]]
-                                     [k (assoc v :bot (name k)
-                                                 :owner-id id
-                                                 :type :command)]))
-                              (into {}))
-        commands''       (each-merge (apply dissoc commands' (into [:init] (keys global-commands)))
-                                     {:type     :command
-                                      :owner-id id})
-        mailman-commands (get-mailmans-commands db)]
+        global-commands  (extract-global-commands commands)
+        mailman-commands (get-mailman-commands db)
+        commands'        (->> (apply dissoc commands (keys global-commands))
+                              (extract-commands chat)
+                              (each-merge {:type     :command
+                                           :owner-id id})
+                              (merge mailman-commands)
+                              (transform-commands))
+        responses'       (->> (extract-commands chat responses)
+                              (each-merge {:type     :response
+                                           :owner-id id})
+                              (transform-commands))]
     (cond-> db
 
             true
             (update-in [:contacts/contacts id] assoc
                        :commands-loaded? true
-                       :commands (merge mailman-commands commands'')
-                       :responses (each-merge responses' {:type     :response
-                                                          :owner-id id})
+                       :commands commands'
+                       :responses responses'
                        :subscriptions subscriptions)
 
             true
-            (update :global-commands merge global-commands)
+            (update :global-commands merge (transform-commands global-commands))
 
-            (= id bots-constants/mailman-bot)
-            (update :contacts/contacts (fn [contacts]
+            ;;TODO(alwx): !!
+            #_(= id bots-constants/mailman-bot)
+            #_(update :contacts/contacts (fn [contacts]
                                          (reduce (fn [contacts [k _]]
                                                    (update-in contacts [k :commands]
                                                               (fn [c]
@@ -169,17 +177,12 @@
                                                  contacts
                                                  contacts))))))
 
-(defn save-commands-js!
-  [_ [id file]]
-  #_(commands/save {:chat-id id :file file}))
-
 (defn save-commands!
-  [{:keys [global-commands] :contacts/keys [contacts]} [id]]
-  (let [command   (get global-commands (keyword id))
-        commands  (get-in contacts [id :commands])
+  [{:contacts/keys [contacts]} [id]]
+  (let [commands  (get-in contacts [id :commands])
         responses (get-in contacts [id :responses])]
-    (contacts/save {:whisper-identity id
-                    :global-command   command
+    ;;TODO(alwx): !
+    #_(contacts/save {:whisper-identity id
                     :commands         (vals commands)
                     :responses        (vals responses)})))
 
@@ -211,8 +214,7 @@
 (reg-handler ::parse-commands! (u/side-effect! parse-commands!))
 
 (reg-handler ::add-commands
-  [(after save-commands-js!)
-   (after save-commands!)
+  [(after save-commands!)
    (after #(dispatch [:update-suggestions]))
    (after (fn [_ [id]]
             (dispatch [:invoke-commands-loading-callbacks id])

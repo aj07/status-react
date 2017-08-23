@@ -12,7 +12,7 @@ function Response() {
 }
 
 Command.prototype.addToCatalog = function () {
-    _status_catalog.commands[this.name] = this;
+    _status_catalog.commands[[this.name, JSON.stringify(this.scope)]] = this;
 };
 
 Command.prototype.param = function (parameter) {
@@ -41,7 +41,7 @@ Command.prototype.create = function (com) {
     this["sequential-params"] = com.sequentialParams;
     this["hide-send-button"] = com.hideSendButton;
 
-    // scope
+    // scopes
     this["scope"] = {};
     this["scope"]["global?"] = com["scope"] != null && com["scope"]["isGlobal"] === true;
     this["scope"]["registered-only?"] = com["scope"] != null && com["scope"]["registeredOnly"] === true;
@@ -57,7 +57,7 @@ Command.prototype.create = function (com) {
 
 Response.prototype = Object.create(Command.prototype);
 Response.prototype.addToCatalog = function () {
-    _status_catalog.responses[this.name] = this;
+    _status_catalog.responses[[this.name, null]] = this;
 };
 Response.prototype.onReceiveResponse = function (handler) {
     this.onReceive = handler;

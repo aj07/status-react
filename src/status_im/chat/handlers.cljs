@@ -1,10 +1,8 @@
 (ns status-im.chat.handlers
   (:require-macros [cljs.core.async.macros :as am])
   (:require [re-frame.core :refer [enrich after debug dispatch reg-fx]]
-            [status-im.models.commands :as commands]
             [clojure.string :as string]
             [status-im.components.styles :refer [default-chat-color]]
-            [status-im.chat.models.suggestions :as suggestions]
             [status-im.chat.constants :as chat-consts]
             [status-im.protocol.core :as protocol]
             [status-im.data-store.chats :as chats]
@@ -465,6 +463,7 @@
         (when dapp-url
           (am/go
             (dispatch [:select-chat-input-command
+                       ;; TODO(alwx): !!
                        (assoc (:browse global-commands) :prefill [dapp-url])
                        nil
                        true])

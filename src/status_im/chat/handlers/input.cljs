@@ -4,7 +4,7 @@
             [status-im.chat.constants :as const]
             [status-im.chat.utils :as chat-utils]
             [status-im.chat.models.input :as input-model]
-            [status-im.chat.models.suggestions :as suggestions]
+            [status-im.chat.models.commands :as commands]
             [status-im.components.react :as react-comp]
             [status-im.components.status :as status]
             [status-im.utils.datetime :as time]
@@ -109,14 +109,11 @@
   (fn [{:keys [current-chat-id] :as db} [_ chat-id text]]
     (let [chat-id         (or chat-id current-chat-id)
           chat-text       (str/trim (or text (get-in db [:chats chat-id :input-text]) ""))
-          requests        (->> (suggestions/get-request-suggestions db chat-text)
-                               (remove (fn [{:keys [type]}]
+          requests        (->> (commands/get-request-suggestions db chat-text)
+                               ;; TODO(alwx): !
+                               #_(remove (fn [{:keys [type]}]
                                          (= type :grant-permissions))))
-          commands        (suggestions/get-command-suggestions db chat-text)
-          global-commands (suggestions/get-global-command-suggestions db chat-text)
-          all-commands    (->> (into global-commands commands)
-                               (remove (fn [[k {:keys [hidden?]}]] hidden?))
-                               (into {}))
+          commands        (commands/commands-for-chat db chat-id chat-text)
           {:keys [dapp?]} (get-in db [:contacts/contacts chat-id])]
       (when dapp?
         (if (str/blank? chat-text)
@@ -125,12 +122,12 @@
             (dispatch [::check-dapp-suggestions chat-id chat-text]))))
       (-> db
           (assoc-in [:chats chat-id :request-suggestions] requests)
-          (assoc-in [:chats chat-id :command-suggestions] all-commands)))))
+          (assoc-in [:chats chat-id :command-suggestions] commands)))))
 
 (handlers/register-handler :load-chat-parameter-box
   (handlers/side-effect!
     (fn [{:keys [current-chat-id bot-db current-account-id] :as db}
-         [_ {:keys [name type bot owner-id] :as command}]]
+         [_ {:keys [name type bot owner-id bot] :as command}]]
       (let [parameter-index (input-model/argument-position db current-chat-id)]
         (when (and command (> parameter-index -1))
           (let [data    (get-in db [:local-storage current-chat-id])
@@ -153,7 +150,7 @@
                                              :to   to}
                                             (input-model/command-dependent-context-params current-chat-id command))}]
             (status/call-jail
-              {:jail-id  (or owner-id current-chat-id)
+              {:jail-id  (or bot owner-id current-chat-id)
                :path     path
                :params   params
                :callback #(dispatch [:received-bot-response

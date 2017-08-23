@@ -37,10 +37,11 @@ status.command({
     name: "browse",
     title: I18n.t('browse_title'),
     scope: {
+        isGlobal: true,
         registeredOnly: true,
         personalChats: true,
         groupChats: true,
-        isGlobal: true
+        canUseForDApps: true
     },
     description: I18n.t('browse_description'),
     color: "#ffa500",

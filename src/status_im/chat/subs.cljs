@@ -8,7 +8,6 @@
             [status-im.constants :refer [response-suggesstion-resize-duration
                                          content-type-status
                                          console-chat-id]]
-            [status-im.models.commands :as commands]
             [status-im.utils.platform :refer [platform-specific ios?]]
             [taoensso.timbre :as log]
             [clojure.string :as str]))
@@ -52,25 +51,22 @@
     (let [chat-id (subscribe [:get-current-chat-id])]
       (get-in db [:bots-suggestions @chat-id]))))
 
-(reg-sub :get-commands
-  (fn [db [_ chat-id]]
-    (let [current-chat (or chat-id (db :current-chat-id))]
-      (or (get-in db [:contacts/contacts current-chat :commands]) {}))))
-
 (reg-sub
   :get-responses
   (fn [db [_ chat-id]]
     (let [current-chat (or chat-id (db :current-chat-id))]
       (or (get-in db [:contacts/contacts current-chat :responses]) {}))))
 
+;; TODO(alwx): !!!
 (reg-sub :get-commands-and-responses
-  (fn [{:keys [chats] :contacts/keys [contacts]} [_ chat-id]]
+  (fn [{:keys [chats global-commands] :contacts/keys [contacts]} [_ chat-id]]
     (->> (get-in chats [chat-id :contacts])
          (filter :is-in-chat)
          (mapv (fn [{:keys [identity]}]
                  (let [{:keys [commands responses]} (get contacts identity)]
                    (merge responses commands))))
-         (apply merge))))
+         (apply merge)
+         (merge global-commands))))
 
 (reg-sub
   :selected-chat-command

@@ -641,6 +641,37 @@ status.command({
     }
 });
 
+status.command({
+    name: "debug",
+    title: I18n.t('debug_mode_title'),
+    description: I18n.t('debug_mode_description'),
+    color: "#7099e6",
+    scope: {
+        registeredOnly: false
+    },
+    params: [{
+        name: "mode",
+        suggestions: debugSuggestions,
+        type: status.types.TEXT
+    }],
+    preview: function (params) {
+        return {
+            markup: status.components.text(
+                {},
+                I18n.t('debug_mode_title') + ": " + params.mode
+            )
+        };
+    },
+    shortPreview: function (params) {
+        return {
+            markup: status.components.text(
+                {},
+                I18n.t('debug_mode_title') + ": " + params.mode
+            )
+        };
+    }
+});
+
 
 // status.command({
 //     name: "help",

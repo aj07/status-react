@@ -21,11 +21,12 @@
 
 (handlers/register-handler :request-command-data
   (handlers/side-effect!
-    (fn [{:keys [current-account-id chats]
-          :contacts/keys [contacts] :as db}
-         [_ {{:keys [command params content-command type]} :content
+    (fn [{:keys          [current-account-id chats]
+          :contacts/keys [contacts]
+          :as            db}
+         [_ {{:keys [command params content-command type bot]} :content
              :keys [message-id chat-id jail-id on-requested from] :as message} data-type]]
-      (let [jail-id  (or jail-id chat-id)
+      (let [jail-id  (or bot jail-id chat-id)
             jail-id' (if (get-in chats [jail-id :group-chat])
                        (get-in chats [jail-id :command-suggestions (keyword command) :owner-id])
                        jail-id)]
@@ -35,7 +36,8 @@
                          #(dispatch [:request-command-data message data-type])])
               (dispatch [:load-commands! jail-id']))
           (let [path     [(if (= :response (keyword type)) :responses :commands)
-                          (if content-command content-command command)
+                          ;;TODO(alwx): !!! merge it with scopes
+                          [(if content-command content-command command) nil]
                           data-type]
                 to       (get-in contacts [chat-id :address])
                 params   {:parameters params
@@ -73,7 +75,7 @@
     (fn [db [_ {:keys [message-id] :as message}]]
       (let [previews (get-in db [:message-data :preview])]
         (when-not (contains? previews message-id)
-          (let [{serialized-preview :preview} (messages/get-by-id message-id)]
+          (let [{serialized-preview :preview :as m} (messages/get-by-id message-id)]
             ;; if preview is already cached in db, do not request it from jail
             ;; and write it directly to message-data path
             (if serialized-preview
